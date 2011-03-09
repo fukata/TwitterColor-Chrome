@@ -1,0 +1,164 @@
+<html>
+<head>
+<title>TwitterColor Extension Options</title>
+</head>
+<script type="text/javascript" src="jquery-1.4.2.min.js"></script>
+<script type="text/javascript" src="default_options.js"></script>
+
+<!-- colorpicker -->
+<link rel="stylesheet" href="colorpicker/css/colorpicker.css" type="text/css" /> 
+<!-- 
+<link rel="stylesheet" media="screen" type="text/css" href="colorpicker/css/layout.css" /> 
+ -->
+<script type="text/javascript" src="colorpicker/js/colorpicker.js"></script>
+<script type="text/javascript" src="colorpicker/js/eye.js"></script>
+<script type="text/javascript" src="colorpicker/js/utils.js"></script>
+<!-- 
+<script type="text/javascript" src="colorpicker/js/layout.js?ver=1.0.2"></script>
+ -->
+
+<script type="text/javascript">
+
+function set_storage(storage) {
+	for (var key in storage) {
+		localStorage[key] = storage[key];
+	}
+}
+
+function get_storage() {
+	var options = new Object();
+	for (var key in default_options) {
+		options[key] = localStorage[key] || default_options[key];
+	}
+	return options;	
+}
+
+// Saves options to localStorage.
+function save_options() {
+	var options = get_storage();
+	// Username
+	options.username = $("#username").attr("value");
+	// My tweet background color
+	options.my_bg_color = $("#my_bg_color").attr("value");
+	// To my tweet background color
+	options.to_my_bg_color = $("#to_my_bg_color").attr("value");
+	
+	// More rules
+	var rule_count = 0;
+	$("#more_rules > li.rule").each(function(){
+		var _text = $("input.rule_text", this)[0].value;
+		var _color = $("input.rule_color", this)[0].value;
+		if (_text && _color) {
+			rule_count++;
+			//alert("rule_count: "+rule_count+", _text: "+_text+", _color: "+_color);
+			options["rule_text_"+rule_count] = _text;
+			options["rule_color_"+rule_count] = _color;
+		}
+	});
+	options.more_rule_count = rule_count;
+	
+	//alert(options.my_bg_color);
+	set_storage(options);
+	
+	// Update status to let user know options were saved.
+	var status = document.getElementById("status");
+	status.innerHTML = "Options Saved.";
+	setTimeout(function() {
+		status.innerHTML = "";
+	}, 750);
+}
+
+// Restores select box state to saved value from localStorage.
+function restore_options() {
+	var options = get_storage();
+
+	if (!options) {
+    	return;
+  	}
+  	
+  	// Username
+  	$("#username").attr("value", options.username);
+  	// My tweet background color
+  	$("#my_bg_color").attr("value", options.my_bg_color);
+  	// To my tweet background color
+  	$("#to_my_bg_color").attr("value", options.to_my_bg_color);
+
+	// more rules
+	if (options.more_rule_count>0) {
+		for (var i=1; i<=options.more_rule_count; i++) {
+			var _text = options["rule_text_"+i];
+			var _color = options["rule_color_"+i];
+			//alert("rule_count: "+i+", _text: "+_text+", _color: "+_color);
+			if (_text && _color) {
+				// add li element
+				var _el = get_rule_element(_text, _color);
+				$("#more_rules").append(_el);
+			}
+		}
+	}
+
+	attach_rule_event();
+}
+
+function get_rule_element(text, color) {
+	var _el = '<li class="rule"><input class="delete" type="button" value="Delete"> Search text: <input class="rule_text" type="text" maxlength="50" size="30" value="'+text+'"> Color: #<input class="rule_color color_picker" type="text" maxlength="6" size="10" value="'+color+'"></li>';
+	return _el;
+}
+
+function add_rule() {
+	var options = get_storage();
+	if ($("#more_rules > li.rule").length >= options.more_rule_max) {
+		return alert("You can not add more than "+options.more_rule_max+" rules.");
+	}
+	var _el = get_rule_element("", options.more_rule_color);
+	$("#more_rules").append(_el);
+
+	attach_rule_event();
+}
+
+function attach_rule_event() {
+  	// colorpicker
+  	$('.color_picker').ColorPicker({
+		onSubmit: function(hsb, hex, rgb, el) {
+			$(el).val(hex);
+			$(el).ColorPickerHide();
+		},
+		onBeforeShow: function () {
+			$(this).ColorPickerSetColor(this.value);
+		}
+	}).bind('keyup', function(){
+		$(this).ColorPickerSetColor(this.value);
+	});
+
+  	$("#more_rules > li.rule").each(function(){
+		// delete rule button
+		var _btn_delete = $("input.delete", this)[0];
+		$(_btn_delete).bind('click', function() {
+			var _el = $(this).parent().get(0);
+			$(_el).removeClass("rule").hide();
+		});
+	});
+}
+
+</script>
+
+<body onload="restore_options()">
+Username:
+<input id="username" type="text" size="30">
+<br />
+My tweet background color: #
+<input id="my_bg_color" class="color_picker" type="text" maxlength="6" size="10">
+<br />
+To my tweet background color: #
+<input id="to_my_bg_color" class="color_picker" type="text" maxlength="6" size="10">
+<br />
+
+More rules:
+<br />
+<input type="button" id="add" value="Add rule" onclick="add_rule();">
+<ul id="more_rules"></ul>
+<hr>
+<div id="status"></div>
+<button onclick="save_options()">Save</button>
+</body>
+</html>
